@@ -1,4 +1,4 @@
-package app.springai.domain.openai.controller;
+package app.springai.api.controller;
 
 import app.springai.domain.openai.service.OpenAIService;
 import java.util.Map;
