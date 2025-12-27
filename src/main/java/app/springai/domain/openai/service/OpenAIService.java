@@ -1,5 +1,7 @@
 package app.springai.domain.openai.service;
 
+import app.springai.domain.openai.entity.ChatEntity;
+import app.springai.domain.openai.repository.ChatRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
@@ -10,6 +12,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -45,6 +48,7 @@ public class OpenAIService {
     private final OpenAiAudioSpeechModel openAiAudioSpeechModel;
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
     private final ChatMemoryRepository chatMemoryRepository;
+    private final ChatRepository chatRepository;
 
     private static final String MODEL = "gpt-4.1-mini";
 
@@ -78,6 +82,13 @@ public class OpenAIService {
         // 유저&페이지별 ChatMemory를 관리하기 위한 key (우선은 명시적으로)
         String userId = "xxxjjhhh" + "_" + "3";
 
+        // 전체 대화 저장용
+        ChatEntity chatUserEntity = new ChatEntity();
+        chatUserEntity.setUserId(userId);
+        chatUserEntity.setType(MessageType.USER);
+        chatUserEntity.setContent(text);
+
+        // 메세지
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .maxMessages(10)
                 .chatMemoryRepository(chatMemoryRepository)
@@ -107,6 +118,14 @@ public class OpenAIService {
 
                     chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
                     chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
+
+                    // 전체 대화 저장용
+                    ChatEntity chatAssistantEntity = new ChatEntity();
+                    chatAssistantEntity.setUserId(userId);
+                    chatAssistantEntity.setType(MessageType.ASSISTANT);
+                    chatAssistantEntity.setContent(responseBuffer.toString());
+
+                    chatRepository.saveAll(List.of(chatUserEntity, chatAssistantEntity));
                 });
     }
 
