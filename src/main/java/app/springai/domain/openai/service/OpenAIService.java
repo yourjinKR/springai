@@ -75,6 +75,7 @@ public class OpenAIService {
         // 요청 및 응답
         return chatClient.prompt(prompt)
                 .call()
+                // 자동 타입추론으로 컨버터 없이 작동
                 .entity(CityResponseDTO.class);
     }
 
@@ -113,6 +114,8 @@ public class OpenAIService {
 
         // 요청 및 응답
         return chatClient.prompt(prompt)
+                // 툴 호출
+                .tools(new ChatTools())
                 .stream()
                 .content()
                 .map(token -> {
