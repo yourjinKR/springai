@@ -1,5 +1,6 @@
 package app.springai.domain.openai.service;
 
+import app.springai.domain.openai.dto.CityResponseDTO;
 import app.springai.domain.openai.entity.ChatEntity;
 import app.springai.domain.openai.repository.ChatRepository;
 import java.util.List;
@@ -53,7 +54,9 @@ public class OpenAIService {
 
     private static final String MODEL = "gpt-4.1-mini";
 
-    public String generate(String text) {
+    public CityResponseDTO generate(String text) {
+
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
 
         // 메세지
         SystemMessage systemMessage = new SystemMessage("");
@@ -70,11 +73,9 @@ public class OpenAIService {
         Prompt prompt = new Prompt(List.of(systemMessage, userMessage, assistantMessage), options);
 
         // 요청 및 응답
-        ChatResponse response = openAiChatModel.call(prompt);
-        return response
-                .getResult()
-                .getOutput()
-                .getText();
+        return chatClient.prompt(prompt)
+                .call()
+                .entity(CityResponseDTO.class);
     }
 
 

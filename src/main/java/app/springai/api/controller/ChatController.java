@@ -1,5 +1,6 @@
 package app.springai.api.controller;
 
+import app.springai.domain.openai.dto.CityResponseDTO;
 import app.springai.domain.openai.entity.ChatEntity;
 import app.springai.domain.openai.service.ChatService;
 import app.springai.domain.openai.service.OpenAIService;
@@ -23,7 +24,7 @@ public class ChatController {
 
     @ResponseBody
     @PostMapping("/chat")
-    public String chat(@RequestBody Map<String, String> body) {
+    public CityResponseDTO chat(@RequestBody Map<String, String> body) {
         return openAIService.generate(body.get("text"));
     }
 
