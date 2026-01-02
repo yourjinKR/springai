@@ -1,5 +1,6 @@
 package app.springai.domain.openai.service;
 
+import app.springai.domain.openai.dto.CityResponseDTO;
 import app.springai.domain.openai.entity.ChatEntity;
 import app.springai.domain.openai.repository.ChatRepository;
 import java.util.List;
@@ -8,6 +9,7 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -52,7 +54,9 @@ public class OpenAIService {
 
     private static final String MODEL = "gpt-4.1-mini";
 
-    public String generate(String text) {
+    public CityResponseDTO generate(String text) {
+
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
 
         // 메세지
         SystemMessage systemMessage = new SystemMessage("");
@@ -69,15 +73,16 @@ public class OpenAIService {
         Prompt prompt = new Prompt(List.of(systemMessage, userMessage, assistantMessage), options);
 
         // 요청 및 응답
-        ChatResponse response = openAiChatModel.call(prompt);
-        return response
-                .getResult()
-                .getOutput()
-                .getText();
+        return chatClient.prompt(prompt)
+                .call()
+                // 자동 타입추론으로 컨버터 없이 작동
+                .entity(CityResponseDTO.class);
     }
 
 
     public Flux<String> generateStream(String text) {
+
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
 
         // 유저&페이지별 ChatMemory를 관리하기 위한 key (우선은 명시적으로)
         String userId = "xxxjjhhh" + "_" + "3";
@@ -108,14 +113,17 @@ public class OpenAIService {
         StringBuilder responseBuffer = new StringBuilder();
 
         // 요청 및 응답
-        return openAiChatModel.stream(prompt)
-                .mapNotNull(response -> {
-                    String token = response.getResult().getOutput().getText();
+        return chatClient.prompt(prompt)
+                // 툴 호출
+                .tools(new ChatTools())
+                .stream()
+                .content()
+                .map(token -> {
                     responseBuffer.append(token);
                     return token;
                 })
                 .doOnComplete(() -> {
-
+                    // chatMemory 저장
                     chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
                     chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
 
