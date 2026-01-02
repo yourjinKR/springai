@@ -8,6 +8,7 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -79,6 +80,8 @@ public class OpenAIService {
 
     public Flux<String> generateStream(String text) {
 
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
+
         // 유저&페이지별 ChatMemory를 관리하기 위한 key (우선은 명시적으로)
         String userId = "xxxjjhhh" + "_" + "3";
 
@@ -108,14 +111,15 @@ public class OpenAIService {
         StringBuilder responseBuffer = new StringBuilder();
 
         // 요청 및 응답
-        return openAiChatModel.stream(prompt)
-                .mapNotNull(response -> {
-                    String token = response.getResult().getOutput().getText();
+        return chatClient.prompt(prompt)
+                .stream()
+                .content()
+                .map(token -> {
                     responseBuffer.append(token);
                     return token;
                 })
                 .doOnComplete(() -> {
-
+                    // chatMemory 저장
                     chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
                     chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
 
